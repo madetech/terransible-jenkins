@@ -1,0 +1,49 @@
+---
+- name: Create tmp directory for job xml files
+  file:
+    path: /var/lib/jenkins/tmp
+    state: directory
+    owner: jenkins
+    group: jenkins
+
+- name: Create job xml
+  template:
+    src: "{{ item.template }}.xml"
+    dest: /var/lib/jenkins/tmp/{{ pipeline_project_name }}-{{ item.name }}.xml
+    owner: jenkins
+    group: jenkins
+  with_items: "{{ cd_pipeline_jobs }}"
+
+- name: Add jobs
+  shell: java -jar {{ jenkins_jar_location }} -s http://{{ jenkins_hostname }}:{{ jenkins_http_port }}{{ jenkins_url_prefix | default('') }}/ create-job {{ pipeline_project_name }}-{{ item.name }}  < /var/lib/jenkins/tmp/{{ pipeline_project_name }}-{{ item.name }}.xml
+  args:
+    creates: /var/lib/jenkins/jobs/{{ pipeline_project_name }}-{{ item.name }}/config.xml
+  notify: restart jenkins
+  with_items: "{{ cd_pipeline_jobs }}"
+
+- name: Create pipeline view
+  template:
+    src: pipeline.xml
+    dest: /var/lib/jenkins/tmp/{{ pipeline_project_name }}-pipeline-view.xml
+    owner: jenkins
+    group: jenkins
+  register: pipeline_view_created
+
+- name: Immediately restart Jenkins before pipeline view add
+  service: name=jenkins state=restarted
+  when: pipeline_view_created.changed
+
+- name: Wait for Jenkins to start up before proceeding.
+  shell: "curl -D - --silent http://{{ jenkins_hostname }}:{{ jenkins_http_port }}{{ jenkins_url_prefix }}/cli/"
+  register: result
+  until: (result.stdout.find("403 Forbidden") != -1) or (result.stdout.find("200 OK") != -1) and (result.stdout.find("Please wait while") == -1)
+  retries: "{{ jenkins_connection_retries }}"
+  delay: "{{ jenkins_connection_delay }}"
+  changed_when: false
+  when: pipeline_view_created.changed
+
+- name: Add pipeline view
+  shell: java -jar {{ jenkins_jar_location }} -s http://{{ jenkins_hostname }}:{{ jenkins_http_port }}{{ jenkins_url_prefix | default('') }}/ create-view < /var/lib/jenkins/tmp/{{ pipeline_project_name }}-pipeline-view.xml
+  #args:
+  #  creates: /var/lib/jenkins/jobs/{{ pipeline_project_name }}-{{ item.name }}/config.xml
+  notify: retart jenkins

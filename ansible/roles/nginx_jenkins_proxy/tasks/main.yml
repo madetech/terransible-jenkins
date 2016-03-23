@@ -1,0 +1,18 @@
+---
+- apt:
+    pkg: "{{ item }}"
+    state: present
+  with_items:
+    - python-passlib
+    - nginx
+
+- htpasswd: path=/etc/nginx/passwdfile name={{ jenkins_auth_user }} password={{ jenkins_auth_password }} owner=root group=www-data
+
+- file: path=/etc/nginx/sites-enabled/default state=absent
+  notify: reload nginx
+
+- template: src=jenkins_proxy.conf dest=/etc/nginx/sites-available/jenkins_proxy.conf
+  notify: reload nginx
+
+- file: state=link src=/etc/nginx/sites-available/jenkins_proxy.conf dest=/etc/nginx/sites-enabled/jenkins_proxy.conf
+  notify: reload nginx

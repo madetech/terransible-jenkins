@@ -1,0 +1,30 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  remote_user: ubuntu
+
+- hosts: tag_role_jenkins_master
+  become: yes
+  become_method: sudo
+  remote_user: ubuntu
+  vars:
+    jenkins_plugins:
+      - git
+      - ssh
+      - conditional-buildstep
+      - jenkins-multijob-plugin
+      - build-pipeline-plugin
+    brightbox_ruby_packages:
+      - ruby2.2
+      - ruby2.2-dev
+  roles:
+    - essentials
+    - MichaelRigart.brightbox-ruby
+    - mjanser.cloudfoundry-cli
+    - geerlingguy.java
+    - geerlingguy.jenkins
+    - nginx_jenkins_proxy
+    - jenkins_cd_pipeline
+
+- hosts: tag_role_jenkins_slave

@@ -1,0 +1,24 @@
+---
+cd_pipeline_jobs:
+  - name: build
+    template: build
+    from_branch: master
+    to_branch: stable
+    next_job: continuous-deploy
+
+  - name: continuous-deploy
+    template: deploy
+    from_branch: stable
+    to_branch: continuous
+    next_job: staging-deploy
+
+  - name: staging-deploy
+    template: deploy
+    from_branch: continuous
+    to_branch: staging
+    next_job: production-deploy
+
+  - name: production-deploy
+    template: deploy
+    from_branch: staging
+    to_branch: production

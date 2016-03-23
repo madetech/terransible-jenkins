@@ -1,0 +1,6 @@
+terraform.tfstate.backup
+ansible/roles/geerlingguy*
+ansible/roles/MichaelRigart.brightbox-ruby
+ansible/roles/mjanser.cloudfoundry-cli
+keys/*
+ansible/ec2*
